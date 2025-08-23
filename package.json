@@ -1,6 +1,6 @@
 {
   "name": "redease",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightning-fast Redis caching middleware for Express.js - Cache with ease",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,18 +41,10 @@
     "ioredis": "^5"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/ioredis": "^5.0.0",
-    "@types/jest": "^29.5.5",
-    "@types/node": "^24.3.0",
-    "@types/supertest": "^2.0.12",
-    "jest": "^29.6.4",
-    "supertest": "^6.3.3",
-    "ts-jest": "^29.1.1",
+    "typescript": "^5.6.3",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.6.3"
-  },
-  "dependencies": {
-    "dotenv": "^17.2.1"
+    "@types/node": "^20.11.0",
+    "@types/express": "^5.0.3",
+    "@types/ioredis": "^5.0.0"
   }
 }

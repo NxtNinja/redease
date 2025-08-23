@@ -20,7 +20,7 @@ Building high-performance APIs shouldn't be complex. **Redease** makes Redis cac
 - 🔌 **Universal Redis Support** — Works with Upstash, Redis Cloud, or self-hosted
 - 📦 **TypeScript First** — Full type safety and IntelliSense support
 - 🛡️ **Production Ready** — Battle-tested error handling and connection management
-- 🪶 **Lightweight** — Only ~18KB unpacked, zero dependencies
+- 🪶 **Lightweight** — Only ~26KB unpacked, zero dependencies
 
 ---
 
@@ -39,6 +39,7 @@ pnpm add redease
 ```
 
 **Note:** Requires `express` and `ioredis` as peer dependencies:
+
 ```bash
 npm install express ioredis
 ```
@@ -50,14 +51,15 @@ npm install express ioredis
 ### Basic Setup (3 lines of code!)
 
 ```typescript
-import express from 'express';
-import { cache, createRedisClient } from 'redease';
+import express from "express";
+import { cache, createRedisClient } from "redease";
 
 const app = express();
 const redis = createRedisClient(process.env.REDIS_URL!);
 
 // That's it! Add caching to any route:
-app.get('/api/users', 
+app.get(
+  "/api/users",
   cache({ ttl: 300, redisClient: redis }), // Cache for 5 minutes
   async (req, res) => {
     const users = await db.users.findAll(); // This expensive query runs only once per TTL
@@ -69,15 +71,16 @@ app.get('/api/users',
 ### Complete Example with Cache Invalidation
 
 ```typescript
-import express from 'express';
-import { cache, invalidate, createRedisClient } from 'redease';
+import express from "express";
+import { cache, invalidate, createRedisClient } from "redease";
 
 const app = express();
 const redis = createRedisClient(process.env.REDIS_URL!);
 
 // Cache GET requests
-app.get('/api/posts/:id', 
-  cache({ ttl: 600, redisClient: redis }), 
+app.get(
+  "/api/posts/:id",
+  cache({ ttl: 600, redisClient: redis }),
   async (req, res) => {
     const post = await db.posts.findById(req.params.id);
     res.json(post);
@@ -85,10 +88,11 @@ app.get('/api/posts/:id',
 );
 
 // Invalidate cache on updates
-app.put('/api/posts/:id', 
-  invalidate({ 
-    key: (req) => `GET:/api/posts/${req.params.id}`, 
-    redisClient: redis 
+app.put(
+  "/api/posts/:id",
+  invalidate({
+    key: (req) => `GET:/api/posts/${req.params.id}`,
+    redisClient: redis,
   }),
   async (req, res) => {
     const updated = await db.posts.update(req.params.id, req.body);
@@ -97,10 +101,11 @@ app.put('/api/posts/:id',
 );
 
 // Invalidate multiple keys
-app.post('/api/posts', 
-  invalidate({ 
-    key: ['GET:/api/posts', 'GET:/api/posts/recent'], 
-    redisClient: redis 
+app.post(
+  "/api/posts",
+  invalidate({
+    key: ["GET:/api/posts", "GET:/api/posts/recent"],
+    redisClient: redis,
   }),
   async (req, res) => {
     const newPost = await db.posts.create(req.body);
@@ -119,9 +124,9 @@ Cache middleware for GET requests.
 
 ```typescript
 interface CacheOptions {
-  ttl: number;              // Time to live in seconds
-  redisClient: Redis;       // ioredis client instance
-  key?: string | KeyGen;    // Custom cache key (optional)
+  ttl: number; // Time to live in seconds
+  redisClient: Redis; // ioredis client instance
+  key?: string | KeyGen; // Custom cache key (optional)
   condition?: (req) => boolean; // Conditional caching (optional)
 }
 
@@ -132,21 +137,21 @@ type KeyGen = (req: Request) => string;
 
 ```typescript
 // Basic caching
-cache({ ttl: 300, redisClient })
+cache({ ttl: 300, redisClient });
 
 // Custom cache key
-cache({ 
-  ttl: 300, 
+cache({
+  ttl: 300,
   redisClient,
-  key: (req) => `user:${req.user.id}:${req.path}`
-})
+  key: (req) => `user:${req.user.id}:${req.path}`,
+});
 
 // Conditional caching
-cache({ 
-  ttl: 300, 
+cache({
+  ttl: 300,
   redisClient,
-  condition: (req) => !req.headers['x-no-cache']
-})
+  condition: (req) => !req.headers["x-no-cache"],
+});
 ```
 
 ### `invalidate(options)`
@@ -155,8 +160,8 @@ Invalidation middleware for mutations.
 
 ```typescript
 interface InvalidateOptions {
-  key: string | string[] | KeyGen;  // Key(s) to invalidate
-  redisClient: Redis;                // ioredis client instance
+  key: string | string[] | KeyGen; // Key(s) to invalidate
+  redisClient: Redis; // ioredis client instance
 }
 ```
 
@@ -164,19 +169,19 @@ interface InvalidateOptions {
 
 ```typescript
 // Single key
-invalidate({ key: 'GET:/api/users', redisClient })
+invalidate({ key: "GET:/api/users", redisClient });
 
 // Multiple keys
-invalidate({ 
-  key: ['GET:/api/users', 'GET:/api/stats'], 
-  redisClient 
-})
+invalidate({
+  key: ["GET:/api/users", "GET:/api/stats"],
+  redisClient,
+});
 
 // Dynamic key
-invalidate({ 
-  key: (req) => `GET:/api/users/${req.params.id}`, 
-  redisClient 
-})
+invalidate({
+  key: (req) => `GET:/api/users/${req.params.id}`,
+  redisClient,
+});
 ```
 
 ### `createRedisClient(uri)`
@@ -184,7 +189,7 @@ invalidate({
 Helper to create configured Redis client.
 
 ```typescript
-const redis = createRedisClient('redis://localhost:6379');
+const redis = createRedisClient("redis://localhost:6379");
 // or with Upstash
 const redis = createRedisClient(process.env.UPSTASH_REDIS_URL!);
 ```
@@ -196,11 +201,12 @@ const redis = createRedisClient(process.env.UPSTASH_REDIS_URL!);
 ### Pattern 1: Cache with Query Parameters
 
 ```typescript
-app.get('/api/search',
+app.get(
+  "/api/search",
   cache({
     ttl: 60,
     redisClient,
-    key: (req) => `search:${JSON.stringify(req.query)}`
+    key: (req) => `search:${JSON.stringify(req.query)}`,
   }),
   searchHandler
 );
@@ -209,12 +215,13 @@ app.get('/api/search',
 ### Pattern 2: User-Specific Caching
 
 ```typescript
-app.get('/api/dashboard',
+app.get(
+  "/api/dashboard",
   authenticate,
   cache({
     ttl: 300,
     redisClient,
-    key: (req) => `dashboard:${req.user.id}`
+    key: (req) => `dashboard:${req.user.id}`,
   }),
   dashboardHandler
 );
@@ -227,11 +234,7 @@ app.get('/api/dashboard',
 async function warmCache() {
   const popularPosts = await db.posts.findPopular();
   for (const post of popularPosts) {
-    await redis.setex(
-      `GET:/api/posts/${post.id}`, 
-      3600, 
-      JSON.stringify(post)
-    );
+    await redis.setex(`GET:/api/posts/${post.id}`, 3600, JSON.stringify(post));
   }
 }
 ```
@@ -256,6 +259,7 @@ PORT=3000
 ## 📊 Performance Impact
 
 Based on real-world usage:
+
 - **~95% reduction** in database queries
 - **10-100x faster** response times for cached routes
 - **Minimal overhead** (~0.5ms for cache hits)
@@ -267,12 +271,12 @@ Based on real-world usage:
 ### Custom Error Handling
 
 ```typescript
-import { cache } from 'redease';
+import { cache } from "redease";
 
 app.use((err, req, res, next) => {
-  if (err.name === 'RedisConnectionError') {
+  if (err.name === "RedisConnectionError") {
     // Fallback to direct database query
-    console.warn('Redis unavailable, serving fresh data');
+    console.warn("Redis unavailable, serving fresh data");
     next();
   } else {
     next(err);
@@ -287,9 +291,9 @@ const redis = createRedisClient({
   url: process.env.REDIS_URL,
   retryStrategy: (times) => Math.min(times * 50, 2000),
   reconnectOnError: (err) => {
-    const targetErrors = ['READONLY', 'ECONNRESET'];
+    const targetErrors = ["READONLY", "ECONNRESET"];
     return targetErrors.includes(err.message);
-  }
+  },
 });
 ```
 

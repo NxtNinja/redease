@@ -1,6 +1,6 @@
 # redease 🚀
 
-> **Lightning-fast Redis caching middleware for Express.js** — Cache with ease, scale with confidence.
+> **Lightning-fast Redis caching middleware for Express.js** — The simplest way to add Redis caching to your Express APIs.
 
 [![npm version](https://img.shields.io/npm/v/redease.svg?style=flat-square)](https://www.npmjs.com/package/redease)
 [![npm downloads](https://img.shields.io/npm/dm/redease.svg?style=flat-square)](https://www.npmjs.com/package/redease)
@@ -11,272 +11,383 @@
 
 ## 🎯 Why Redease?
 
-Building high-performance APIs shouldn't be complex. **Redease** makes Redis caching as simple as adding a middleware — no boilerplate, no hassle, just **instant performance gains**. Cache with ease, scale with confidence.
+Redease makes Redis caching for Express.js applications incredibly simple. Add powerful caching to any route with a single line of code, with built-in invalidation, TypeScript support, and production-ready error handling.
 
-### ✨ Key Features
+### ✨ Features
 
-- ⚡ **Zero-Config Caching** — Add caching to any route with one line
-- 🎯 **Smart Invalidation** — Automatically clear stale data on updates
-- 🔌 **Universal Redis Support** — Works with Upstash, Redis Cloud, or self-hosted
-- 📦 **TypeScript First** — Full type safety and IntelliSense support
-- 🛡️ **Production Ready** — Battle-tested error handling and connection management
-- 🪶 **Lightweight** — Only ~26KB unpacked, zero dependencies
+- ⚡ **One-line caching** - Add caching to any route with `cache()`
+- 🎯 **Smart invalidation** - Automatic and programmatic cache control
+- 🛡️ **Production ready** - Built-in error handling and connection management
+- 📦 **TypeScript native** - Full type safety and IntelliSense
+- 🔌 **Any Redis provider** - Works with Redis Cloud, Upstash, Railway, or self-hosted
+- 🪶 **Lightweight** - Zero dependencies, minimal footprint
 
 ---
 
 ## 📦 Installation
 
 ```bash
-npm install redease
+npm install redease express ioredis
 ```
 
-or with Yarn/pnpm:
+**Peer Dependencies:**
 
-```bash
-yarn add redease
-# or
-pnpm add redease
-```
-
-**Note:** Requires `express` and `ioredis` as peer dependencies:
-
-```bash
-npm install express ioredis
-```
+- `express` ^4.18.0
+- `ioredis` ^5.7.0
 
 ---
 
-## 🚀 Quick Start
+## 🚀 60-Second Quick Start
 
-### Basic Setup (3 lines of code!)
+### 1. Basic Setup
 
 ```typescript
 import express from "express";
 import { cache, createRedisClient } from "redease";
 
 const app = express();
-const redis = createRedisClient(process.env.REDIS_URL!);
+const redisClient = createRedisClient("redis://localhost:6379");
 
-// That's it! Add caching to any route:
-app.get(
-  "/api/users",
-  cache({ ttl: 300, redisClient: redis }), // Cache for 5 minutes
-  async (req, res) => {
-    const users = await db.users.findAll(); // This expensive query runs only once per TTL
-    res.json(users);
-  }
-);
+// Cache any route with one line
+app.get("/api/users", cache({ ttl: 300, redisClient }), (req, res) => {
+  const users = getUsersFromDB(); // This only runs once every 5 minutes!
+  res.json(users);
+});
+
+app.listen(3000);
 ```
 
-### Complete Example with Cache Invalidation
+### 2. Environment Setup (.env)
 
-```typescript
-import express from "express";
-import { cache, invalidate, createRedisClient } from "redease";
+```bash
+# For local development
+REDIS_URL=redis://localhost:6379
 
-const app = express();
-const redis = createRedisClient(process.env.REDIS_URL!);
-
-// Cache GET requests
-app.get(
-  "/api/posts/:id",
-  cache({ ttl: 600, redisClient: redis }),
-  async (req, res) => {
-    const post = await db.posts.findById(req.params.id);
-    res.json(post);
-  }
-);
-
-// Invalidate cache on updates
-app.put(
-  "/api/posts/:id",
-  invalidate({
-    key: (req) => `GET:/api/posts/${req.params.id}`,
-    redisClient: redis,
-  }),
-  async (req, res) => {
-    const updated = await db.posts.update(req.params.id, req.body);
-    res.json(updated);
-  }
-);
-
-// Invalidate multiple keys
-app.post(
-  "/api/posts",
-  invalidate({
-    key: ["GET:/api/posts", "GET:/api/posts/recent"],
-    redisClient: redis,
-  }),
-  async (req, res) => {
-    const newPost = await db.posts.create(req.body);
-    res.json(newPost);
-  }
-);
+# For production (Upstash, Redis Cloud, Railway)
+REDIS_URL=redis://:password@host:port
 ```
 
 ---
 
-## 🔧 API Reference
+## 📖 Complete API Reference
 
-### `cache(options)`
+### Core Functions
 
-Cache middleware for GET requests.
+#### `createRedisClient(options: string | RedisOptions): Redis`
+
+Creates and manages a Redis connection with automatic reconnection.
+
+```typescript
+// From URL string
+const redisClient = createRedisClient("redis://localhost:6379");
+
+// From options object
+const redisClient = createRedisClient({
+  host: "localhost",
+  port: 6379,
+  password: "your-password",
+});
+
+// From environment variable (recommended)
+const redisClient = createRedisClient(process.env.REDIS_URL!);
+```
+
+#### `cache(options: CacheOptions): ExpressMiddleware`
+
+The main caching middleware.
 
 ```typescript
 interface CacheOptions {
-  ttl: number; // Time to live in seconds
-  redisClient: Redis; // ioredis client instance
-  key?: string | KeyGen; // Custom cache key (optional)
-  condition?: (req) => boolean; // Conditional caching (optional)
+  ttl: number; // Time to live in seconds (required)
+  redisClient: Redis; // Redis client instance (required)
+  key?: string | ((req: Request) => string); // Custom cache key
+  isCacheable?: (req: Request) => boolean; // Conditional caching
+  prefix?: string; // Cache key prefix
+  timeout?: number; // Redis operation timeout (ms)
 }
-
-type KeyGen = (req: Request) => string;
 ```
 
-**Examples:**
+#### `invalidate(options: InvalidateOptions): ExpressMiddleware`
 
-```typescript
-// Basic caching
-cache({ ttl: 300, redisClient });
-
-// Custom cache key
-cache({
-  ttl: 300,
-  redisClient,
-  key: (req) => `user:${req.user.id}:${req.path}`,
-});
-
-// Conditional caching
-cache({
-  ttl: 300,
-  redisClient,
-  condition: (req) => !req.headers["x-no-cache"],
-});
-```
-
-### `invalidate(options)`
-
-Invalidation middleware for mutations.
+Middleware for automatic cache invalidation.
 
 ```typescript
 interface InvalidateOptions {
-  key: string | string[] | KeyGen; // Key(s) to invalidate
-  redisClient: Redis; // ioredis client instance
+  key: string | string[] | ((req: Request) => string); // Key(s) to invalidate
+  redisClient: Redis; // Redis client instance (required)
+  pattern?: string; // Pattern for bulk invalidation
 }
 ```
 
-**Examples:**
+### Programmatic Control Functions
+
+#### `invalidateByKey(key: string, redisClient?: Redis): Promise<void>`
+
+Programmatically delete a specific cache entry.
 
 ```typescript
-// Single key
-invalidate({ key: "GET:/api/users", redisClient });
-
-// Multiple keys
-invalidate({
-  key: ["GET:/api/users", "GET:/api/stats"],
-  redisClient,
-});
-
-// Dynamic key
-invalidate({
-  key: (req) => `GET:/api/users/${req.params.id}`,
-  redisClient,
-});
+// After updating a user
+await invalidateByKey(`user:${userId}`, redisClient);
 ```
 
-### `createRedisClient(uri)`
+#### `invalidateByPattern(pattern: string, redisClient?: Redis): Promise<number>`
 
-Helper to create configured Redis client.
+Delete multiple cache entries using Redis pattern matching.
 
 ```typescript
-const redis = createRedisClient("redis://localhost:6379");
-// or with Upstash
-const redis = createRedisClient(process.env.UPSTASH_REDIS_URL!);
+// Clear all user cache
+const cleared = await invalidateByPattern("user:*", redisClient);
+console.log(`Cleared ${cleared} cache entries`);
+
+// Common patterns:
+await invalidateByPattern("user:*", redisClient); // All users
+await invalidateByPattern("post:123*", redisClient); // Posts starting with 123
+await invalidateByPattern("*:latest", redisClient); // All ":latest" entries
+```
+
+### Utility Functions
+
+#### `getRedisClient(): Redis | null`
+
+Get the current Redis client instance.
+
+#### `closeRedisClient(): Promise<void>`
+
+Gracefully close the Redis connection.
+
+#### `isRedisConnected(): boolean`
+
+Check if Redis is currently connected.
+
+#### `healthCheck(redisClient?: Redis): Promise<HealthCheckResult>`
+
+Get connection health status.
+
+```typescript
+const health = await healthCheck(redisClient);
+// Returns: { status: 'connected' | 'disconnected' | 'error', latency?: number }
 ```
 
 ---
 
-## 🎯 Real-World Patterns
+## 🎯 Complete Examples
 
-### Pattern 1: Cache with Query Parameters
+### 1. Basic Users API with Full Caching
 
 ```typescript
-app.get(
-  "/api/search",
+import express from "express";
+import { pool } from "./db";
+import { cache, invalidate, createRedisClient, invalidateByKey } from "redease";
+
+const router = express.Router();
+const redisClient = createRedisClient(process.env.REDIS_URL!);
+
+// GET /api/users - Cached for 5 minutes
+router.get("/", cache({ ttl: 300, redisClient }), async (req, res) => {
+  const { rows } = await pool.query("SELECT * FROM users ORDER BY id ASC");
+  res.json({ data: rows, count: rows.length });
+});
+
+// GET /api/users/:id - Cached for 10 minutes with custom key
+router.get(
+  "/:id",
   cache({
-    ttl: 60,
+    ttl: 600,
     redisClient,
-    key: (req) => `search:${JSON.stringify(req.query)}`,
+    key: (req) => `user:${req.params.id}`,
   }),
-  searchHandler
+  async (req, res) => {
+    const { rows } = await pool.query("SELECT * FROM users WHERE id = $1", [
+      req.params.id,
+    ]);
+    res.json({ data: rows[0] });
+  }
 );
+
+// POST /api/users - Create user with automatic cache invalidation
+router.post(
+  "/",
+  invalidate({
+    key: "GET:/api/users", // Clear the users list cache
+    redisClient,
+  }),
+  async (req, res) => {
+    const { rows } = await pool.query(
+      "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
+      [req.body.name, req.body.email]
+    );
+    res.status(201).json({ data: rows[0] });
+  }
+);
+
+// PUT /api/users/:id - Update user with precise cache control
+router.put(
+  "/:id",
+  invalidate({
+    key: "GET:/api/users", // Clear users list
+    redisClient,
+  }),
+  async (req, res) => {
+    const { rows } = await pool.query(
+      "UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING *",
+      [req.body.name, req.body.email, req.params.id]
+    );
+
+    // Programmatically clear this specific user's cache
+    await invalidateByKey(`user:${req.params.id}`, redisClient);
+
+    res.json({ data: rows[0] });
+  }
+);
+
+export default router;
 ```
 
-### Pattern 2: User-Specific Caching
+### 2. Advanced Caching Patterns
 
 ```typescript
+// Conditional caching based on request headers
 app.get(
-  "/api/dashboard",
-  authenticate,
+  "/api/sensitive-data",
   cache({
     ttl: 300,
     redisClient,
-    key: (req) => `dashboard:${req.user.id}`,
+    isCacheable: (req) => !req.headers["authorization"], // Don't cache authenticated requests
+    key: (req) => `sensitive:${req.query.page}`,
   }),
-  dashboardHandler
+  handler
+);
+
+// Custom cache key with query parameters
+app.get(
+  "/api/search",
+  cache({
+    ttl: 600,
+    redisClient,
+    key: (req) => `search:${JSON.stringify(req.query)}`, // Include all query params
+  }),
+  searchHandler
+);
+
+// User-specific caching
+app.get(
+  "/api/profile",
+  cache({
+    ttl: 3600,
+    redisClient,
+    key: (req) => `profile:${req.user.id}`, // User-specific cache
+    prefix: "app-v1", // Namespace cache keys
+  }),
+  profileHandler
 );
 ```
 
-### Pattern 3: Cache Warming
+### 3. Admin & Maintenance Endpoints
 
 ```typescript
-// Pre-populate cache on server start
-async function warmCache() {
-  const popularPosts = await db.posts.findPopular();
-  for (const post of popularPosts) {
-    await redis.setex(`GET:/api/posts/${post.id}`, 3600, JSON.stringify(post));
-  }
-}
+// Clear all cache
+app.post("/admin/cache/clear", async (req, res) => {
+  const cleared = await invalidateByPattern("*", redisClient);
+  res.json({ cleared, message: "All cache cleared" });
+});
+
+// Clear cache for specific pattern
+app.post("/admin/cache/clear-pattern", async (req, res) => {
+  const { pattern } = req.body;
+  const cleared = await invalidateByPattern(pattern, redisClient);
+  res.json({ cleared, pattern });
+});
+
+// Health check endpoint
+app.get("/health", async (req, res) => {
+  const redisHealth = await healthCheck(redisClient);
+  res.json({
+    status: "ok",
+    redis: redisHealth,
+    timestamp: new Date().toISOString(),
+  });
+});
 ```
 
 ---
 
-## 🌍 Environment Configuration
+## 🔧 Configuration Options
 
-```env
-# .env
-REDIS_URL=redis://localhost:6379
-# or for Upstash
-REDIS_URL=redis://:password@host:port
+### Redis Connection Options
 
-# Optional
-NODE_ENV=production
-PORT=3000
+```typescript
+const redisClient = createRedisClient({
+  // Connection details
+  host: "localhost",
+  port: 6379,
+  password: "your-password",
+
+  // Connection management
+  retryStrategy: (times) => Math.min(times * 50, 2000),
+  maxRetriesPerRequest: 3,
+  connectTimeout: 10000,
+
+  // TLS/SSL (for production)
+  tls: process.env.NODE_ENV === "production" ? {} : undefined,
+});
+```
+
+### Cache Options Deep Dive
+
+```typescript
+app.get(
+  "/api/data",
+  cache({
+    // Required options
+    ttl: 300, // Cache for 5 minutes (in seconds)
+    redisClient: redis, // Redis client instance
+
+    // Optional options
+    key: "custom-key", // Custom cache key
+    // or dynamic key:
+    key: (req) => `data:${req.params.id}:${req.query.version}`,
+
+    // Conditional caching
+    isCacheable: (req) => {
+      // Don't cache if certain conditions are met
+      return req.method === "GET" && !req.headers["x-no-cache"];
+    },
+
+    // Advanced options
+    prefix: "app-v1", // Key prefix for namespacing
+    timeout: 5000, // Redis operation timeout (ms)
+  }),
+  handler
+);
 ```
 
 ---
 
-## 📊 Performance Impact
+## 🛡️ Error Handling & Production Ready
 
-Based on real-world usage:
+### Graceful Degradation
 
-- **~95% reduction** in database queries
-- **10-100x faster** response times for cached routes
-- **Minimal overhead** (~0.5ms for cache hits)
+```typescript
+// If Redis is unavailable, the cache middleware will:
+// 1. Log the error
+// 2. Continue to your route handler (serving fresh data)
+// 3. Not break your application
 
----
-
-## 🛠️ Advanced Configuration
+app.get("/api/users", cache({ ttl: 300, redisClient }), (req, res) => {
+  // This will always work, even if Redis is down
+});
+```
 
 ### Custom Error Handling
 
 ```typescript
-import { cache } from "redease";
-
+// Add global error handler for cache-related errors
 app.use((err, req, res, next) => {
   if (err.name === "RedisConnectionError") {
-    // Fallback to direct database query
-    console.warn("Redis unavailable, serving fresh data");
+    console.warn("Redis unavailable - serving fresh data without caching");
+    next(); // Continue without caching
+  } else if (err.name === "CacheTimeoutError") {
+    console.warn("Cache operation timed out - serving fresh data");
     next();
   } else {
     next(err);
@@ -284,78 +395,249 @@ app.use((err, req, res, next) => {
 });
 ```
 
-### Redis Connection Options
+### Health Monitoring
 
 ```typescript
-const redis = createRedisClient({
+// Regular health checks
+setInterval(async () => {
+  const health = await healthCheck(redisClient);
+  if (health.status !== "connected") {
+    console.warn("Redis connection issues:", health);
+  }
+}, 30000); // Every 30 seconds
+```
+
+---
+
+## 🌍 Environment Setup
+
+### Development (Local Redis)
+
+```bash
+# Install Redis locally
+# On macOS:
+brew install redis
+
+# On Ubuntu:
+sudo apt-get install redis-server
+
+# Start Redis
+redis-server
+
+# Test connection
+redis-cli ping
+```
+
+### Production (Cloud Providers)
+
+```bash
+# Upstash (free tier available)
+REDIS_URL=redis://:password@host:port
+
+# Redis Cloud
+REDIS_URL=redis://:password@host:port
+
+# Railway
+REDIS_URL=redis://:password@host:port
+
+# Heroku Redis
+REDIS_URL=redis://:password@host:port
+```
+
+### Docker Compose
+
+```yaml
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
+```
+
+---
+
+## 📊 Performance Optimization
+
+### Cache Key Strategies
+
+```typescript
+// Good: Descriptive and specific
+`user:123:profile``posts:recent:page:2``search:term:javascript:sort:newest`// Avoid: Too generic or too broad
+`data` // ❌ Too generic
+`user:*`; // ❌ Too broad (for keys, okay for patterns)
+```
+
+### TTL Guidelines
+
+```typescript
+// Static data: Long TTL (hours/days)
+cache({ ttl: 86400, redisClient }); // 24 hours
+
+// Dynamic data: Medium TTL (minutes)
+cache({ ttl: 300, redisClient }); // 5 minutes
+
+// Highly dynamic: Short TTL (seconds)
+cache({ ttl: 30, redisClient }); // 30 seconds
+
+// User-specific: Session-based TTL
+cache({ ttl: 3600, redisClient }); // 1 hour
+```
+
+### Memory Management
+
+```typescript
+// Monitor cache size
+const memoryInfo = await redisClient.info("memory");
+console.log("Redis memory usage:", memoryInfo);
+
+// Set max memory policy (in redis.conf or via CLI)
+// maxmemory 100mb
+// maxmemory-policy allkeys-lru
+```
+
+---
+
+## 🐛 Troubleshooting Guide
+
+### Common Issues
+
+1. **"Redis connection failed"**
+
+   ```bash
+   # Check if Redis is running
+   redis-cli ping
+   # Should return "PONG"
+
+   # Check connection URL
+   echo $REDIS_URL
+   ```
+
+2. **"Cache not working"**
+
+   ```typescript
+   // Verify middleware order
+   app.get("/api/data", cache({ ttl: 300, redisClient }), handler);
+   // NOT: app.get('/api/data', handler, cache({...}));
+   ```
+
+3. **"Memory usage high"**
+
+   ```bash
+   # Check Redis memory
+   redis-cli info memory
+
+   # Clear all cache (development only)
+   redis-cli flushall
+   ```
+
+### Debug Mode
+
+```typescript
+// Enable debug logging
+const redisClient = createRedisClient({
   url: process.env.REDIS_URL,
-  retryStrategy: (times) => Math.min(times * 50, 2000),
-  reconnectOnError: (err) => {
-    const targetErrors = ["READONLY", "ECONNRESET"];
-    return targetErrors.includes(err.message);
-  },
+  lazyConnect: true,
+});
+
+redisClient.on("connect", () => console.log("Redis connecting..."));
+redisClient.on("ready", () => console.log("Redis ready"));
+redisClient.on("error", (err) => console.error("Redis error:", err));
+```
+
+---
+
+## 📚 Best Practices
+
+### 1. Cache Strategy
+
+```typescript
+// Cache at the right level
+app.get("/api/users", cache({ ttl: 300, redisClient }), getUsers); // ✅ Good
+app.use(cache({ ttl: 300, redisClient })); // ❌ Avoid - too broad
+```
+
+### 2. Key Design
+
+```typescript
+// Use consistent key patterns
+`resource:id:subresource` // ✅ Good
+`random_key_123`; // ❌ Avoid - hard to manage
+```
+
+### 3. Invalidation Strategy
+
+```typescript
+// Invalidate precisely
+await invalidateByKey(`user:${id}`, redisClient); // ✅ Good
+await invalidateByPattern("*", redisClient); // ❌ Avoid - too aggressive
+```
+
+### 4. Monitoring
+
+```typescript
+// Add cache metrics
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const cacheStatus = res.locals.cacheStatus;
+    logMetrics({ duration, cacheStatus, path: req.path });
+  });
+  next();
 });
 ```
 
 ---
 
-## 🧪 Testing
+## 🆘 Getting Help
 
-```bash
-# Run tests
-npm test
+### Common Questions
 
-# Run with coverage
-npm run test:coverage
+**Q: My cache isn't working?**
+A: Check: 1) Redis connection, 2) Middleware order, 3) Cache key conflicts
 
-# Run in watch mode
-npm run test:watch
-```
+**Q: How to clear all cache?**
+A: Use `await invalidateByPattern('*', redisClient)` (carefully!)
 
----
+**Q: How to monitor cache performance?**
+A: Use `res.locals.cacheStatus` and Redis `INFO` command
 
-## 🤝 Contributing
+### Support
 
-We love contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-```bash
-# Setup development environment
-git clone https://github.com/NxtNinja/redise.git
-cd redise
-npm install
-npm run dev
-```
-
----
-
-## 📈 Roadmap
-
-- [ ] **v1.1** - Cache tags and batch invalidation
-- [ ] **v1.2** - Redis Cluster support
-- [ ] **v1.3** - Built-in cache analytics
-- [ ] **v2.0** - GraphQL and WebSocket support
-
----
-
-## 💡 Pro Tips
-
-1. **Start with short TTLs** (30-300s) and increase based on your data update patterns
-2. **Use cache warming** for critical data during off-peak hours
-3. **Monitor cache hit rates** — aim for >80% on read-heavy endpoints
-4. **Implement cache aside pattern** for data that rarely changes
+1. **Check the docs** - This README covers 95% of use cases
+2. **Enable debug logs** - See what's happening internally
+3. **Check Redis connection** - `redis-cli ping`
+4. **Create an issue** - Include your code and error logs
 
 ---
 
 ## 📄 License
 
-[MIT](LICENSE) © 2025 [Priyangsu Banik](https://github.com/NxtNinja)
+MIT License - free for commercial and personal use.
 
 ---
 
 <div align="center">
-  
-**Built with ❤️ by developers, for developers.**
 
-[Report Bug](https://github.com/NxtNinja/redise/issues) · [Request Feature](https://github.com/NxtNinja/redise/issues) · [Star on GitHub](https://github.com/NxtNinja/redise)
+**Happy caching! 🚀**
+
+[Report an Issue](https://github.com/your-username/redease/issues) ·
+[Request a Feature](https://github.com/your-username/redease/issues) ·
+[⭐ Star on GitHub](https://github.com/your-username/redease)
 
 </div>

@@ -477,7 +477,7 @@ volumes:
 
 ```typescript
 // Good: Descriptive and specific
-`user:123:profile``posts:recent:page:2``search:term:javascript:sort:newest`// Avoid: Too generic or too broad
+`user:123:profile``posts:recent:page:2``search:term:javascript:sort:newest` // Avoid: Too generic or too broad
 `data` // ❌ Too generic
 `user:*`; // ❌ Too broad (for keys, okay for patterns)
 ```
@@ -636,8 +636,8 @@ MIT License - free for commercial and personal use.
 
 **Happy caching! 🚀**
 
-[Report an Issue](https://github.com/your-username/redease/issues) ·
-[Request a Feature](https://github.com/your-username/redease/issues) ·
-[⭐ Star on GitHub](https://github.com/your-username/redease)
+[Report an Issue](https://github.com/nxtninja/redease/issues) ·
+[Request a Feature](https://github.com/nxtninja/redease/issues) ·
+[⭐ Star on GitHub](https://github.com/nxtninja/redease)
 
 </div>

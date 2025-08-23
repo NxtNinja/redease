@@ -1,7 +1,7 @@
 {
-  "name": "redise",
+  "name": "redease",
   "version": "1.0.0",
-  "description": "A robust, production-ready Redis caching middleware for Express.js applications",
+  "description": "Lightning-fast Redis caching middleware for Express.js - Cache with ease",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -30,12 +30,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/priyangsubanik/express-redis-cache.git"
+    "url": "https://github.com/NxtNinja/redease.git"
   },
   "bugs": {
-    "url": "https://github.com/priyangsubanik/express-redis-cache/issues"
+    "url": "https://github.com/NxtNinja/redease/issues"
   },
-  "homepage": "https://github.com/priyangsubanik/express-redis-cache#readme",
+  "homepage": "https://github.com/NxtNinja/redease#readme",
   "peerDependencies": {
     "express": "^4 || ^5",
     "ioredis": "^5"

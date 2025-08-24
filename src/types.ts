@@ -25,7 +25,7 @@ export interface CacheOptions {
 }
 
 export interface InvalidateOptions {
-  key: string | ((req: Request) => string);
+  key?: string | ((req: Request) => string);
   prefix?: string;
   redisClient?: Redis;
   pattern?: string;

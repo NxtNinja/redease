@@ -1,6 +1,6 @@
 {
   "name": "redease",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Lightning-fast Redis caching middleware for Express.js - Cache with ease",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
